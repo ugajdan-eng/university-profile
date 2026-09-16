@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+anthropic
+pillow
+imagehash
+requests
+bing-image-downloader
+python-dotenv
