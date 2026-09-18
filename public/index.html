@@ -296,9 +296,9 @@ footer{padding:40px 0;border-top:1px solid var(--glass-brd)}
   <div class="wrap">
     <h2 class="reveal" data-i18n="c_title">Предложить вуз или сообщить об ошибке</h2>
     <form class="form reveal" id="contactForm">
-      <input required data-i18n-ph="c_name" placeholder="Имя">
+      <input required id="cName" data-i18n-ph="c_name" placeholder="Имя">
       <input required id="phone" type="tel" inputmode="tel" placeholder="+7 (___) ___-__-__">
-      <textarea required rows="4" data-i18n-ph="c_msg" placeholder="Сообщение"></textarea>
+      <textarea required id="cMsg" rows="4" data-i18n-ph="c_msg" placeholder="Сообщение"></textarea>
       <button class="btn" type="submit" data-i18n="c_send">Отправить</button>
       <p class="form-msg" id="formMsg" aria-live="polite"></p>
     </form>
@@ -346,7 +346,7 @@ const I18N = {
     s3_t:"Проверьте источник",s3_d:"Под каждым фото указано, откуда оно взято.",gal_title:"Результаты",gal_empty:"Введите название вуза, чтобы увидеть галерею.",
     searching:"Ищем снимки: ",found:"Найдено снимков: ",none:"Снимков не найдено. Попробуйте полное или английское название.",err:"Сервер не ответил. Проверьте подключение и повторите поиск.",
     unis_title:"Вузы Казахстана",unis_sub:"Выберите университет, чтобы сразу открыть его фотографии.",founded:"основан в",show:"Показать фото",
-    c_title:"Предложить вуз или сообщить об ошибке",c_name:"Имя",c_msg:"Сообщение",c_send:"Отправить",c_ok:"Сообщение отправлено.",c_phone:"Введите номер полностью: +7 (XXX) XXX-XX-XX",
+    c_title:"Предложить вуз или сообщить об ошибке",c_name:"Имя",c_msg:"Сообщение",c_send:"Отправить в Telegram",c_ok:"Чат открыт, текст уже в поле ввода. Если поле пустое, вставьте текст: он скопирован.",c_phone:"Введите номер полностью: +7 (XXX) XXX-XX-XX",
     foot:"Атлас кампусов. Изображения принадлежат их правообладателям."},
   kk:{loading:"Фокусты түзеудеміз…",brand:"Кампустар атласы",nav_how:"Қалай жұмыс істейді",nav_gallery:"Галерея",nav_unis:"ЖОО",nav_contact:"Байланыс",
     hero_title:"Кампустар атласы",hero_sub:"Кез келген университеттің суреттерін табыңыз. Әр суреттің астында дереккөзі көрсетілген.",
@@ -355,7 +355,7 @@ const I18N = {
     s3_t:"Дереккөзді тексеріңіз",s3_d:"Әр суреттің астында қайдан алынғаны көрсетілген.",gal_title:"Нәтижелер",gal_empty:"Галереяны көру үшін ЖОО атауын енгізіңіз.",
     searching:"Суреттерді іздеудеміз: ",found:"Табылған суреттер: ",none:"Суреттер табылмады. Толық немесе ағылшынша атауын қолданып көріңіз.",err:"Сервер жауап бермеді. Байланысты тексеріп, қайта іздеңіз.",
     unis_title:"Қазақстан ЖОО-лары",unis_sub:"Суреттерін бірден ашу үшін университетті таңдаңыз.",founded:"құрылған жылы",show:"Суреттерді көрсету",
-    c_title:"ЖОО ұсыну немесе қате туралы хабарлау",c_name:"Аты",c_msg:"Хабарлама",c_send:"Жіберу",c_ok:"Хабарлама жіберілді.",c_phone:"Нөмірді толық енгізіңіз: +7 (XXX) XXX-XX-XX",
+    c_title:"ЖОО ұсыну немесе қате туралы хабарлау",c_name:"Аты",c_msg:"Хабарлама",c_send:"Telegram-ға жіберу",c_ok:"Чат ашылды, мәтін енгізу жолында. Жол бос болса, мәтінді қойыңыз: ол көшірілген.",c_phone:"Нөмірді толық енгізіңіз: +7 (XXX) XXX-XX-XX",
     foot:"Кампустар атласы. Суреттер олардың құқық иелеріне тиесілі."}
 };
 let lang = load("atlas-lang","ru");
@@ -537,10 +537,30 @@ document.getElementById("contactForm").onsubmit = e => {
   e.preventDefault();
   const msg = document.getElementById("formMsg");
   if (phone.value.replace(/\D/g,"").length !== 11){ msg.textContent = t("c_phone"); return; }
-  // TODO: подключите свой эндпоинт, напр. fetch("/feedback",{method:"POST",body:new FormData(e.target)})
+  // текст по шаблону
+  const text = `Здравствуйте!
+Меня зовут ${document.getElementById("cName").value.trim()} и я хотел оставить сообщение:
+${document.getElementById("cMsg").value.trim()}
+${phone.value}`;
+  copyText(text);                                                        // запасной вариант, если клиент не подставит текст
+  window.open(`${TG_CHAT}?text=${encodeURIComponent(text)}`, "_blank", "noopener"); // текст сразу в поле ввода
   msg.textContent = t("c_ok");
   e.target.reset();
 };
+
+/* ссылка на личный чат Telegram */
+const TG_CHAT = "https://t.me/D_yu14";
+
+/* копирование в буфер: execCommand работает синхронно и не блокируется, Clipboard API — запасной вариант */
+function copyText(txt){
+  const ta = document.createElement("textarea");
+  ta.value = txt; ta.style.cssText = "position:fixed;opacity:0";
+  document.body.appendChild(ta); ta.select();
+  let ok = false;
+  try{ ok = document.execCommand("copy"); }catch{}
+  ta.remove();
+  if (!ok && navigator.clipboard) navigator.clipboard.writeText(txt).catch(() => {});
+}
 
 /* ================= СТАРТ ================= */
 applyLang();
