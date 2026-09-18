@@ -1,41 +1,546 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru" data-theme="dark">
 <head>
-    <title>University Profile</title>
-    <style>
-        body { font-family: Arial; max-width: 1200px; margin: 0 auto; padding: 20px; }
-        input { padding: 10px; font-size: 16px; width: 300px; }
-        button { padding: 10px 20px; cursor: pointer; background: #0066cc; color: white; border: none; }
-        .gallery { display: grid; grid-template-columns: repeat(auto-fill, 200px); gap: 10px; margin-top: 20px; }
-        .card { border: 1px solid #ccc; padding: 10px; }
-        img { width: 100%; }
-        .source { font-size: 12px; color: #666; margin-top: 5px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Атлас кампусов — фотографии университетов</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=Manrope:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   ТОКЕНЫ: палитра флага РК — лазурь неба + золото солнца
+   ========================================================= */
+:root{
+  --azure:#00A3C4;      /* небо степи */
+  --gold:#F2B705;       /* солнце */
+  --ink:#0A2540;        /* глубокий синий */
+  --snow:#F3F8FA;       /* снег гор */
+  --sage:#7FA9B3;       /* приглушённый акцент */
+  --bg:var(--ink);
+  --bg-2:#0F3057;
+  --text:#EAF4F7;
+  --muted:#9FC0CA;
+  --glass:rgba(255,255,255,.06);
+  --glass-brd:rgba(255,255,255,.14);
+  --shadow:0 20px 50px -20px rgba(0,10,25,.7);
+  --r-lg:28px; --r-sm:12px;
+  --f-display:"Unbounded", "Arial Black", sans-serif;
+  --f-body:"Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+:root[data-theme="light"]{
+  --bg:var(--snow);
+  --bg-2:#DCEEF3;
+  --text:var(--ink);
+  --muted:#46677A;
+  --glass:rgba(255,255,255,.55);
+  --glass-brd:rgba(10,37,64,.12);
+  --shadow:0 20px 50px -24px rgba(10,37,64,.35);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--f-body);background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden;transition:background .4s,color .4s}
+img{max-width:100%;display:block}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--gold);outline-offset:3px;border-radius:6px}
+.wrap{width:min(1180px,100% - 40px);margin-inline:auto}
+h1,h2,h3{font-family:var(--f-display);line-height:1.15;font-weight:600}
+h2{font-size:clamp(1.6rem,4vw,2.6rem);margin-bottom:1rem}
+.lead{color:var(--muted);max-width:60ch}
+
+/* ================= LOADER: диафрагма объектива ================= */
+#loader{position:fixed;inset:0;z-index:999;display:grid;place-items:center;background:var(--ink);transition:opacity .6s,visibility .6s}
+#loader.done{opacity:0;visibility:hidden}
+.aperture{width:110px;height:110px;position:relative;border-radius:50%;border:3px solid var(--azure);overflow:hidden}
+.aperture span{position:absolute;left:50%;top:50%;width:120px;height:60px;background:var(--gold);transform-origin:0 0;
+  animation:blade 1.6s ease-in-out infinite alternate}
+.aperture span:nth-child(odd){background:#D9A404}
+@keyframes blade{from{translate:-8px -8px}to{translate:-50px -30px}}
+.loader-text{margin-top:18px;font-family:var(--f-display);color:var(--snow);font-size:.9rem;text-align:center}
+
+/* ================= NAV (glass) ================= */
+header{position:fixed;inset:0 0 auto;z-index:50;padding:14px 0;transition:background .3s,backdrop-filter .3s}
+header.scrolled{background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--glass-brd)}
+.nav{display:flex;align-items:center;gap:16px}
+.logo{font-family:var(--f-display);font-weight:800;text-decoration:none;display:flex;align-items:center;gap:10px;font-size:1.05rem}
+.logo svg{width:32px;height:32px}
+.menu{display:flex;gap:26px;list-style:none;margin-left:auto}
+.menu a{text-decoration:none;font-weight:500;position:relative}
+.menu a::after{content:"";position:absolute;left:0;bottom:-4px;height:2px;width:0;background:var(--gold);transition:width .3s}
+.menu a:hover::after{width:100%}
+.controls{display:flex;gap:8px;align-items:center}
+.pill{border:1px solid var(--glass-brd);background:var(--glass);color:var(--text);border-radius:999px;padding:8px 12px;cursor:pointer;font:600 .8rem var(--f-body);transition:transform .2s,border-color .2s}
+.pill:hover{transform:translateY(-2px);border-color:var(--gold)}
+.lang button{border:0;background:none;color:var(--muted);font:inherit;cursor:pointer;padding:0 4px}
+.lang button.on{color:var(--gold)}
+.burger{display:none;width:42px;height:42px;border-radius:50%;border:1px solid var(--glass-brd);background:var(--glass);cursor:pointer;position:relative}
+.burger span,.burger::before,.burger::after{content:"";position:absolute;left:11px;right:11px;height:2px;background:var(--text);transition:.3s}
+.burger::before{top:14px}.burger span{top:20px}.burger::after{top:26px}
+.burger.open::before{top:20px;rotate:45deg}.burger.open span{opacity:0}.burger.open::after{top:20px;rotate:-45deg}
+
+/* ================= HERO: вращающееся солнце + парящие рамки ================= */
+.hero{min-height:100svh;display:grid;place-items:center;position:relative;overflow:hidden;padding:120px 0 140px;
+  clip-path:polygon(0 0,100% 0,100% 88%,0 100%)}
+.sun{position:absolute;width:140vmax;aspect-ratio:1;left:50%;top:60%;translate:-50% -50%;opacity:.22;
+  background:repeating-conic-gradient(from 0deg,var(--gold) 0 3deg,transparent 3deg 11.25deg);
+  -webkit-mask:radial-gradient(circle,#000 8%,transparent 60%);mask:radial-gradient(circle,#000 8%,transparent 60%);
+  animation:spin 120s linear infinite}
+.sun::after{content:"";position:absolute;inset:44%;border-radius:50%;background:var(--gold);filter:blur(4px)}
+@keyframes spin{to{rotate:360deg}}
+.hero::before{content:"";position:absolute;inset:0;background:linear-gradient(160deg,transparent 30%,var(--bg-2) 100%)}
+#frames{position:absolute;inset:0;pointer-events:none}
+.frame{position:absolute;border:2px solid var(--azure);border-bottom-width:14px;border-radius:6px;opacity:.35;animation:float 14s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-30px) rotate(6deg)}}
+.hero-inner{position:relative;text-align:center;max-width:820px}
+.hero h1{font-size:clamp(2.2rem,8vw,5.2rem);font-weight:800;letter-spacing:-.02em}
+.hero p{margin:1.2rem auto 2rem;color:var(--muted);font-size:1.1rem;max-width:52ch}
+
+/* поисковая строка — центральный элемент интерфейса */
+.search{display:flex;gap:8px;padding:8px;border-radius:999px;background:var(--glass);border:1px solid var(--glass-brd);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:var(--shadow);max-width:620px;margin-inline:auto}
+.search input{flex:1;min-width:0;border:0;background:transparent;color:var(--text);font:500 1.05rem var(--f-body);padding:12px 18px}
+.search input::placeholder{color:var(--muted)}
+.search input:focus{outline:none}
+.search:focus-within{border-color:var(--azure)}
+.btn{border:0;border-radius:999px;padding:14px 28px;cursor:pointer;font:700 1rem var(--f-body);color:var(--ink);
+  background:linear-gradient(135deg,var(--gold),#FFD84D);transition:transform .2s,box-shadow .2s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 10px 24px -8px var(--gold)}
+.btn:active{transform:translateY(0)}
+.btn:disabled{opacity:.6;cursor:wait}
+
+/* ================= STATS ================= */
+.stats{margin-top:-60px;position:relative;z-index:2}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.stat{padding:22px;border-radius:var(--r-lg);background:var(--glass);border:1px solid var(--glass-brd);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.stat b{font-family:var(--f-display);font-size:clamp(1.8rem,5vw,2.6rem);color:var(--gold);display:block}
+.stat span{color:var(--muted);font-size:.92rem}
+
+section{padding:90px 0}
+
+/* ================= КАК РАБОТАЕТ (реальная последовательность → номера уместны) ================= */
+.steps{display:grid;gap:18px;margin-top:2rem;counter-reset:s}
+.step{position:relative;padding:28px 28px 28px 90px;border-left:3px solid var(--azure)}
+.step::before{counter-increment:s;content:counter(s);position:absolute;left:24px;top:22px;font:800 2.4rem var(--f-display);color:var(--azure);opacity:.6}
+.step h3{font-size:1.1rem;margin-bottom:.3rem}
+.step p{color:var(--muted)}
+
+/* ================= ГАЛЕРЕЯ — волна сверху ================= */
+.gallery-sec{background:var(--bg-2);position:relative;padding-top:130px}
+.gallery-sec::before{content:"";position:absolute;top:-1px;left:0;right:0;height:80px;background:var(--bg);
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 80' preserveAspectRatio='none'%3E%3Cpath d='M0 0h1440v30c-240 50-480 50-720 20S240 10 0 50z'/%3E%3C/svg%3E") center/100% 100%;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 80' preserveAspectRatio='none'%3E%3Cpath d='M0 0h1440v30c-240 50-480 50-720 20S240 10 0 50z'/%3E%3C/svg%3E") center/100% 100%}
+.status{color:var(--muted);margin:1rem 0 2rem;min-height:1.6em}
+.gallery{columns:1;column-gap:16px}
+.card{break-inside:avoid;margin-bottom:16px;border-radius:var(--r-sm);overflow:hidden;background:var(--glass);border:1px solid var(--glass-brd);
+  cursor:zoom-in;transition:transform .35s,box-shadow .35s;animation:pop .5s both}
+.card:hover{transform:translateY(-6px) rotate(-.6deg);box-shadow:var(--shadow)}
+.card img{width:100%;transition:transform .5s}
+.card:hover img{transform:scale(1.04)}
+.card .source{padding:10px 14px;font-size:.8rem;color:var(--muted);word-break:break-word}
+.card .source a{color:var(--azure)}
+@keyframes pop{from{opacity:0;transform:translateY(20px)}}
+.skeleton{height:220px;border-radius:var(--r-sm);margin-bottom:16px;break-inside:avoid;
+  background:linear-gradient(90deg,var(--glass) 25%,var(--glass-brd) 50%,var(--glass) 75%);background-size:200% 100%;animation:shimmer 1.2s infinite}
+@keyframes shimmer{to{background-position:-200% 0}}
+
+/* лайтбокс */
+.lightbox{position:fixed;inset:0;z-index:90;background:rgba(5,18,32,.9);display:none;place-items:center;padding:20px;cursor:zoom-out}
+.lightbox.open{display:grid}
+.lightbox img{max-height:85vh;border-radius:var(--r-sm);animation:pop .3s}
+
+/* ================= СЛАЙДЕР ВУЗОВ ================= */
+.slider{position:relative;overflow:hidden;margin-top:2rem;border-radius:var(--r-lg)}
+.track{display:flex;transition:transform .6s cubic-bezier(.7,0,.2,1)}
+.slide{min-width:100%;padding:40px clamp(24px,5vw,60px);background:linear-gradient(135deg,var(--glass),transparent);border:1px solid var(--glass-brd);border-radius:var(--r-lg)}
+.slide h3{font-size:clamp(1.3rem,3.5vw,2rem)}
+.slide .meta{color:var(--gold);font-weight:700;margin:.4rem 0 1rem}
+.slide p{color:var(--muted);max-width:55ch;margin-bottom:1.4rem}
+.dots{display:flex;gap:10px;justify-content:center;margin-top:18px}
+.dots button{width:10px;height:10px;border-radius:999px;border:0;background:var(--glass-brd);cursor:pointer;transition:width .3s,background .3s}
+.dots button.on{width:30px;background:var(--gold)}
+
+/* ================= КОНТАКТЫ — диагональ ================= */
+.contact{background:linear-gradient(160deg,var(--bg-2),var(--bg));clip-path:polygon(0 8%,100% 0,100% 100%,0 100%);padding-top:140px}
+.form{display:grid;gap:14px;max-width:620px;margin-top:1.5rem}
+.form input,.form textarea{width:100%;padding:14px 18px;border-radius:var(--r-sm);border:1px solid var(--glass-brd);background:var(--glass);color:var(--text);font:1rem var(--f-body)}
+.form input:focus,.form textarea:focus{outline:none;border-color:var(--azure)}
+.form-msg{color:var(--azure);font-weight:600;min-height:1.4em}
+
+footer{padding:40px 0;border-top:1px solid var(--glass-brd)}
+.foot{display:flex;flex-wrap:wrap;gap:20px;justify-content:space-between;align-items:center;color:var(--muted);font-size:.9rem}
+.socials{display:flex;gap:12px}
+.socials a{width:44px;height:44px;display:grid;place-items:center;border-radius:50%;border:1px solid var(--glass-brd);transition:transform .3s,background .3s,color .3s}
+.socials a:hover{transform:translateY(-4px) rotate(8deg);background:var(--gold);color:var(--ink)}
+.socials svg{width:20px;height:20px;fill:currentColor}
+
+/* кнопка «наверх» */
+#toTop{position:fixed;right:20px;bottom:20px;z-index:40;width:50px;height:50px;border-radius:50%;border:0;cursor:pointer;
+  background:var(--azure);color:#fff;font-size:1.3rem;opacity:0;visibility:hidden;translate:0 20px;transition:.3s}
+#toTop.show{opacity:1;visibility:visible;translate:0}
+#toTop:hover{background:var(--gold);color:var(--ink)}
+
+/* появление при скролле */
+.reveal{opacity:0;transform:translateY(40px);transition:opacity .8s,transform .8s}
+.reveal.in{opacity:1;transform:none}
+
+/* ================= RESPONSIVE (mobile-first) ================= */
+@media (max-width:820px){
+  .burger{display:block}
+  .menu{position:fixed;inset:70px 16px auto;flex-direction:column;gap:0;padding:12px;border-radius:var(--r-lg);
+    background:var(--bg);border:1px solid var(--glass-brd);box-shadow:var(--shadow);transform:translateY(-20px);opacity:0;visibility:hidden;transition:.3s}
+  .menu.open{transform:none;opacity:1;visibility:visible}
+  .menu a{display:block;padding:14px}
+  .controls{margin-left:auto}
+  .search{flex-direction:column;border-radius:var(--r-lg)}
+}
+@media (min-width:600px){.gallery{columns:2}}
+@media (min-width:900px){.gallery{columns:3}.stats-grid{grid-template-columns:repeat(4,1fr)}.steps{grid-template-columns:repeat(3,1fr)}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}html{scroll-behavior:auto}.reveal{opacity:1;transform:none}}
+</style>
 </head>
 <body>
-    <h1>University Image Profile</h1>
-    <input id="uni" placeholder="Enter university name" />
-    <button onclick="search()">Search</button>
-    
-    <div id="result"></div>
 
-    <script>
-        async function search() {
-            const uni = document.getElementById("uni").value;
-            const res = await fetch("/search?university_name=" + uni, {method: "POST"});
-            const data = await res.json();
-            
-            let html = '<div class="gallery">';
-            data.images.forEach(img => {
-                html += `<div class="card">
-                    <img src="${img.url}" onerror="this.style.display='none'" />
-                    <div class="source">${img.source}</div>
-                </div>`;
-            });
-            html += '</div>';
-            
-            document.getElementById("result").innerHTML = html;
-        }
-    </script>
+<!-- LOADER -->
+<div id="loader" aria-hidden="true">
+  <div>
+    <div class="aperture"><span style="rotate:0deg"></span><span style="rotate:60deg"></span><span style="rotate:120deg"></span><span style="rotate:180deg"></span><span style="rotate:240deg"></span><span style="rotate:300deg"></span></div>
+    <p class="loader-text" data-i18n="loading">Наводим фокус…</p>
+  </div>
+</div>
+
+<!-- NAV -->
+<header id="header">
+  <nav class="wrap nav">
+    <a href="#top" class="logo">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15" fill="none" stroke="#00A3C4" stroke-width="2"/><circle cx="16" cy="16" r="6" fill="#F2B705"/></svg>
+      <span data-i18n="brand">Атлас кампусов</span>
+    </a>
+    <ul class="menu" id="menu">
+      <li><a href="#how" data-i18n="nav_how">Как работает</a></li>
+      <li><a href="#gallery" data-i18n="nav_gallery">Галерея</a></li>
+      <li><a href="#unis" data-i18n="nav_unis">Вузы</a></li>
+      <li><a href="#contact" data-i18n="nav_contact">Связь</a></li>
+    </ul>
+    <div class="controls">
+      <div class="pill lang" role="group" aria-label="Язык">
+        <button data-lang="ru" class="on">РУС</button>/<button data-lang="kk">ҚАЗ</button>
+      </div>
+      <button class="pill" id="themeBtn" aria-label="Сменить тему">☀</button>
+      <button class="burger" id="burger" aria-label="Меню" aria-expanded="false"><span></span></button>
+    </div>
+  </nav>
+</header>
+
+<!-- HERO -->
+<section class="hero" id="top">
+  <div class="sun"></div>
+  <div id="frames"></div>
+  <div class="wrap hero-inner">
+    <h1 data-i18n="hero_title">Атлас кампусов</h1>
+    <p data-i18n="hero_sub">Найдите фотографии любого университета. Под каждым снимком указан источник.</p>
+    <!-- поиск: логика исходного кода сохранена -->
+    <form class="search" id="searchForm" role="search">
+      <input id="uni" autocomplete="off" data-i18n-ph="placeholder" placeholder="Название университета" aria-label="Название университета">
+      <button class="btn" id="searchBtn" type="submit" data-i18n="search">Найти</button>
+    </form>
+  </div>
+</section>
+
+<!-- СЧЁТЧИКИ (данные текущего браузера) -->
+<div class="wrap stats">
+  <div class="stats-grid">
+    <div class="stat reveal"><b class="count" data-key="searches">0</b><span data-i18n="st_searches">Поисков выполнено</span></div>
+    <div class="stat reveal"><b class="count" data-key="images">0</b><span data-i18n="st_images">Снимков найдено</span></div>
+    <div class="stat reveal"><b class="count" data-key="sources">0</b><span data-i18n="st_sources">Разных источников</span></div>
+    <div class="stat reveal"><b class="count" data-key="unis">0</b><span data-i18n="st_unis">Вузов в подборке</span></div>
+  </div>
+</div>
+
+<!-- КАК РАБОТАЕТ -->
+<section id="how">
+  <div class="wrap">
+    <h2 class="reveal" data-i18n="how_title">Три шага до галереи</h2>
+    <div class="steps">
+      <div class="step reveal"><h3 data-i18n="s1_t">Введите название</h3><p data-i18n="s1_d">На русском, казахском или английском.</p></div>
+      <div class="step reveal"><h3 data-i18n="s2_t">Сервер собирает снимки</h3><p data-i18n="s2_d">Поиск идёт по открытым источникам.</p></div>
+      <div class="step reveal"><h3 data-i18n="s3_t">Проверьте источник</h3><p data-i18n="s3_d">Под каждым фото указано, откуда оно взято.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ГАЛЕРЕЯ (результаты) -->
+<section class="gallery-sec" id="gallery">
+  <div class="wrap">
+    <h2 class="reveal" data-i18n="gal_title">Результаты</h2>
+    <p class="status" id="status" data-i18n="gal_empty">Введите название вуза, чтобы увидеть галерею.</p>
+    <div class="gallery" id="result"></div>
+  </div>
+</section>
+<div class="lightbox" id="lightbox"><img alt=""></div>
+
+<!-- СЛАЙДЕР ВУЗОВ (автопрокрутка + точки) -->
+<section id="unis">
+  <div class="wrap">
+    <h2 class="reveal" data-i18n="unis_title">Вузы Казахстана</h2>
+    <p class="lead reveal" data-i18n="unis_sub">Выберите университет, чтобы сразу открыть его фотографии.</p>
+    <div class="slider reveal" id="slider">
+      <div class="track" id="track"></div>
+    </div>
+    <div class="dots" id="dots"></div>
+  </div>
+</section>
+
+<!-- КОНТАКТЫ -->
+<section class="contact" id="contact">
+  <div class="wrap">
+    <h2 class="reveal" data-i18n="c_title">Предложить вуз или сообщить об ошибке</h2>
+    <form class="form reveal" id="contactForm">
+      <input required data-i18n-ph="c_name" placeholder="Имя">
+      <input required id="phone" type="tel" inputmode="tel" placeholder="+7 (___) ___-__-__">
+      <textarea required rows="4" data-i18n-ph="c_msg" placeholder="Сообщение"></textarea>
+      <button class="btn" type="submit" data-i18n="c_send">Отправить</button>
+      <p class="form-msg" id="formMsg" aria-live="polite"></p>
+    </form>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot">
+    <span data-i18n="foot">Атлас кампусов. Изображения принадлежат их правообладателям.</span>
+    <!-- соцсети: впишите свои ссылки в href -->
+    <div class="socials">
+      <a href="#" aria-label="Telegram"><svg viewBox="0 0 24 24"><path d="M21.9 4.3 18.7 19c-.2 1-.9 1.3-1.8.8l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.3-5 9.1-8.2c.4-.4-.1-.6-.6-.2L6.2 12.7l-4.8-1.5c-1-.3-1-1 .2-1.5L20.5 2.8c.9-.3 1.6.2 1.4 1.5z"/></svg></a>
+      <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 8.2a3.2 3.2 0 1 1 0-6.4 3.2 3.2 0 0 1 0 6.4zM17.3 5.5a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4zM12 2c-2.7 0-3 0-4.1.1C4.2 2.3 2.3 4.2 2.1 7.9 2 9 2 9.3 2 12s0 3 .1 4.1c.2 3.7 2.1 5.6 5.8 5.8 1.1.1 1.4.1 4.1.1s3 0 4.1-.1c3.7-.2 5.6-2.1 5.8-5.8.1-1.1.1-1.4.1-4.1s0-3-.1-4.1c-.2-3.7-2.1-5.6-5.8-5.8C15 2 14.7 2 12 2z"/></svg></a>
+      <a href="#" aria-label="GitHub"><svg viewBox="0 0 24 24"><path d="M12 .5a11.5 11.5 0 0 0-3.6 22.4c.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.2c0 .3.2.7.8.6A11.5 11.5 0 0 0 12 .5z"/></svg></a>
+    </div>
+  </div>
+</footer>
+
+<button id="toTop" aria-label="Наверх">↑</button>
+
+<script>
+/* =========================================================
+   ДАННЫЕ: вузы для слайдера (реальные год/город основания)
+   q — запрос, уходящий на бэкенд
+   ========================================================= */
+const UNIS = [
+  {q:"Nazarbayev University", ru:"Назарбаев Университет", kk:"Назарбаев Университеті", city:{ru:"Астана",kk:"Астана"}, y:2010,
+   d:{ru:"Исследовательский университет с обучением на английском языке.",kk:"Ағылшын тілінде оқытатын зерттеу университеті."}},
+  {q:"Al-Farabi Kazakh National University", ru:"КазНУ им. аль-Фараби", kk:"әл-Фараби атындағы ҚазҰУ", city:{ru:"Алматы",kk:"Алматы"}, y:1934,
+   d:{ru:"Крупнейший классический университет страны.",kk:"Елдегі ең ірі классикалық университет."}},
+  {q:"L.N. Gumilyov Eurasian National University", ru:"ЕНУ им. Л. Н. Гумилёва", kk:"Л. Н. Гумилев атындағы ЕҰУ", city:{ru:"Астана",kk:"Астана"}, y:1996,
+   d:{ru:"Национальный университет в столице.",kk:"Елордадағы ұлттық университет."}},
+  {q:"Kazakh-British Technical University", ru:"КБТУ", kk:"ҚБТУ", city:{ru:"Алматы",kk:"Алматы"}, y:2001,
+   d:{ru:"Технический университет в историческом здании в центре Алматы.",kk:"Алматы орталығындағы тарихи ғимаратта орналасқан техникалық университет."}},
+  {q:"Satbayev University", ru:"Satbayev University", kk:"Satbayev University", city:{ru:"Алматы",kk:"Алматы"}, y:1934,
+   d:{ru:"Старейший технический вуз Казахстана.",kk:"Қазақстандағы ең көне техникалық ЖОО."}}
+];
+
+/* ================= ЛОКАЛИЗАЦИЯ РУС / ҚАЗ ================= */
+const I18N = {
+  ru:{loading:"Наводим фокус…",brand:"Атлас кампусов",nav_how:"Как работает",nav_gallery:"Галерея",nav_unis:"Вузы",nav_contact:"Связь",
+    hero_title:"Атлас кампусов",hero_sub:"Найдите фотографии любого университета. Под каждым снимком указан источник.",
+    placeholder:"Название университета",search:"Найти",st_searches:"Поисков выполнено",st_images:"Снимков найдено",st_sources:"Разных источников",st_unis:"Вузов в подборке",
+    how_title:"Три шага до галереи",s1_t:"Введите название",s1_d:"На русском, казахском или английском.",s2_t:"Сервер собирает снимки",s2_d:"Поиск идёт по открытым источникам.",
+    s3_t:"Проверьте источник",s3_d:"Под каждым фото указано, откуда оно взято.",gal_title:"Результаты",gal_empty:"Введите название вуза, чтобы увидеть галерею.",
+    searching:"Ищем снимки: ",found:"Найдено снимков: ",none:"Снимков не найдено. Попробуйте полное или английское название.",err:"Сервер не ответил. Проверьте подключение и повторите поиск.",
+    unis_title:"Вузы Казахстана",unis_sub:"Выберите университет, чтобы сразу открыть его фотографии.",founded:"основан в",show:"Показать фото",
+    c_title:"Предложить вуз или сообщить об ошибке",c_name:"Имя",c_msg:"Сообщение",c_send:"Отправить",c_ok:"Сообщение отправлено.",c_phone:"Введите номер полностью: +7 (XXX) XXX-XX-XX",
+    foot:"Атлас кампусов. Изображения принадлежат их правообладателям."},
+  kk:{loading:"Фокусты түзеудеміз…",brand:"Кампустар атласы",nav_how:"Қалай жұмыс істейді",nav_gallery:"Галерея",nav_unis:"ЖОО",nav_contact:"Байланыс",
+    hero_title:"Кампустар атласы",hero_sub:"Кез келген университеттің суреттерін табыңыз. Әр суреттің астында дереккөзі көрсетілген.",
+    placeholder:"Университет атауы",search:"Іздеу",st_searches:"Орындалған іздеулер",st_images:"Табылған суреттер",st_sources:"Түрлі дереккөздер",st_unis:"Тізімдегі ЖОО",
+    how_title:"Галереяға дейін үш қадам",s1_t:"Атауын енгізіңіз",s1_d:"Орысша, қазақша немесе ағылшынша.",s2_t:"Сервер суреттерді жинайды",s2_d:"Іздеу ашық дереккөздер бойынша жүреді.",
+    s3_t:"Дереккөзді тексеріңіз",s3_d:"Әр суреттің астында қайдан алынғаны көрсетілген.",gal_title:"Нәтижелер",gal_empty:"Галереяны көру үшін ЖОО атауын енгізіңіз.",
+    searching:"Суреттерді іздеудеміз: ",found:"Табылған суреттер: ",none:"Суреттер табылмады. Толық немесе ағылшынша атауын қолданып көріңіз.",err:"Сервер жауап бермеді. Байланысты тексеріп, қайта іздеңіз.",
+    unis_title:"Қазақстан ЖОО-лары",unis_sub:"Суреттерін бірден ашу үшін университетті таңдаңыз.",founded:"құрылған жылы",show:"Суреттерді көрсету",
+    c_title:"ЖОО ұсыну немесе қате туралы хабарлау",c_name:"Аты",c_msg:"Хабарлама",c_send:"Жіберу",c_ok:"Хабарлама жіберілді.",c_phone:"Нөмірді толық енгізіңіз: +7 (XXX) XXX-XX-XX",
+    foot:"Кампустар атласы. Суреттер олардың құқық иелеріне тиесілі."}
+};
+let lang = load("atlas-lang","ru");
+const t = k => I18N[lang][k] ?? k;
+
+function applyLang(){
+  document.documentElement.lang = lang === "kk" ? "kk" : "ru";
+  document.querySelectorAll("[data-i18n]").forEach(el => el.textContent = t(el.dataset.i18n));
+  document.querySelectorAll("[data-i18n-ph]").forEach(el => el.placeholder = t(el.dataset.i18nPh));
+  document.querySelectorAll("[data-lang]").forEach(b => b.classList.toggle("on", b.dataset.lang === lang));
+  renderSlides();
+}
+document.querySelectorAll("[data-lang]").forEach(b => b.onclick = () => { lang = b.dataset.lang; save("atlas-lang",lang); applyLang(); });
+
+/* ================= localStorage с защитой ================= */
+function load(k,def){ try{ const v = localStorage.getItem(k); return v === null ? def : JSON.parse(v); }catch{ return def; } }
+function save(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
+
+/* ================= ТЕМА ================= */
+const root = document.documentElement, themeBtn = document.getElementById("themeBtn");
+function setTheme(th){ root.dataset.theme = th; themeBtn.textContent = th === "dark" ? "☀" : "☾"; save("atlas-theme",th); }
+setTheme(load("atlas-theme","dark"));
+themeBtn.onclick = () => setTheme(root.dataset.theme === "dark" ? "light" : "dark");
+
+/* ================= HAMBURGER ================= */
+const burger = document.getElementById("burger"), menu = document.getElementById("menu");
+burger.onclick = () => { const o = menu.classList.toggle("open"); burger.classList.toggle("open",o); burger.setAttribute("aria-expanded",o); };
+menu.querySelectorAll("a").forEach(a => a.onclick = () => { menu.classList.remove("open"); burger.classList.remove("open"); burger.setAttribute("aria-expanded",false); });
+
+/* ================= HERO: парящие фоторамки + параллакс мыши ================= */
+const framesBox = document.getElementById("frames");
+for (let i = 0; i < 12; i++){
+  const f = document.createElement("div"), s = 40 + Math.random()*70;
+  f.className = "frame";
+  Object.assign(f.style,{width:s+"px",height:s*1.15+"px",left:Math.random()*95+"%",top:Math.random()*90+"%",
+    animationDelay:-Math.random()*14+"s",animationDuration:10+Math.random()*10+"s"});
+  f.dataset.depth = (Math.random()*30+10).toFixed(0);
+  framesBox.appendChild(f);
+}
+window.addEventListener("mousemove", e => {
+  const x = e.clientX/innerWidth - .5, y = e.clientY/innerHeight - .5;
+  framesBox.querySelectorAll(".frame").forEach(f => f.style.translate = `${x*f.dataset.depth}px ${y*f.dataset.depth}px`);
+});
+
+/* ================= HEADER + КНОПКА НАВЕРХ ================= */
+const header = document.getElementById("header"), toTop = document.getElementById("toTop");
+addEventListener("scroll", () => {
+  header.classList.toggle("scrolled", scrollY > 40);
+  toTop.classList.toggle("show", scrollY > 600);
+},{passive:true});
+toTop.onclick = () => scrollTo({top:0,behavior:"smooth"});
+
+/* ================= REVEAL при скролле ================= */
+const revealIO = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting){ e.target.classList.add("in"); revealIO.unobserve(e.target); } }),{threshold:.15});
+document.querySelectorAll(".reveal").forEach(el => revealIO.observe(el));
+
+/* ================= СЧЁТЧИКИ: запуск только в зоне видимости ================= */
+let stats = load("atlas-stats",{searches:0,images:0,sources:[]});
+const statValue = k => ({searches:stats.searches,images:stats.images,sources:stats.sources.length,unis:UNIS.length}[k]);
+function animateCount(el){
+  const to = statValue(el.dataset.key), from = +el.textContent || 0, t0 = performance.now(), dur = 1400;
+  (function tick(now){
+    const p = Math.min((now - t0)/dur,1), ease = 1 - Math.pow(1-p,3);
+    el.textContent = Math.round(from + (to-from)*ease).toLocaleString("ru-RU");
+    if (p < 1) requestAnimationFrame(tick);
+  })(t0);
+}
+let statsVisible = false;
+new IntersectionObserver(es => es.forEach(e => {
+  if (e.isIntersecting && !statsVisible){ statsVisible = true; document.querySelectorAll(".count").forEach(animateCount); }
+}),{threshold:.5}).observe(document.querySelector(".stats"));
+
+/* ================= ПОИСК (исходная логика: POST /search?university_name=) ================= */
+const statusEl = document.getElementById("status"), result = document.getElementById("result"), btn = document.getElementById("searchBtn");
+document.getElementById("searchForm").onsubmit = e => { e.preventDefault(); search(); };
+
+async function search(){
+  const uni = document.getElementById("uni").value.trim();
+  if (!uni) return;
+  document.getElementById("gallery").scrollIntoView({behavior:"smooth"});
+  btn.disabled = true;
+  statusEl.textContent = t("searching") + uni;
+  result.innerHTML = '<div class="skeleton"></div>'.repeat(6);
+  try{
+    const res = await fetch("/search?university_name=" + encodeURIComponent(uni), {method:"POST"}); // encode: исправлены пробелы/кириллица
+    if (!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    renderGallery(data.images || []);
+  }catch(err){
+    console.error(err);
+    result.innerHTML = "";
+    statusEl.textContent = t("err");
+  }finally{ btn.disabled = false; }
+}
+
+/* рендер через DOM вместо innerHTML — защита от XSS в img.source */
+function renderGallery(images){
+  result.innerHTML = "";
+  if (!images.length){ statusEl.textContent = t("none"); return; }
+  statusEl.textContent = t("found") + images.length;
+  images.forEach((img,i) => {
+    const card = document.createElement("figure"), pic = new Image(), cap = document.createElement("figcaption");
+    card.className = "card"; card.style.animationDelay = i*60 + "ms";
+    pic.src = img.url; pic.loading = "lazy"; pic.alt = img.source || "";
+    pic.onerror = () => card.remove();                         // битые картинки убираем целиком
+    cap.className = "source";
+    if (/^https?:\/\//.test(img.source || "")){
+      const a = document.createElement("a");
+      a.href = img.source; a.target = "_blank"; a.rel = "noopener";
+      try{ a.textContent = new URL(img.source).hostname; }catch{ a.textContent = img.source; }
+      a.onclick = e => e.stopPropagation();
+      cap.appendChild(a);
+    } else cap.textContent = img.source || "";
+    card.append(pic,cap);
+    card.onclick = () => openLightbox(img.url);
+    result.appendChild(card);
+  });
+  // обновляем статистику
+  stats.searches++; stats.images += images.length;
+  stats.sources = [...new Set([...stats.sources, ...images.map(i => { try{ return new URL(i.source).hostname; }catch{ return i.source; } })])].slice(-500);
+  save("atlas-stats",stats);
+  if (statsVisible) document.querySelectorAll(".count").forEach(animateCount);
+}
+
+/* лайтбокс */
+const lb = document.getElementById("lightbox");
+function openLightbox(src){ lb.querySelector("img").src = src; lb.classList.add("open"); }
+lb.onclick = () => lb.classList.remove("open");
+addEventListener("keydown", e => { if (e.key === "Escape") lb.classList.remove("open"); });
+
+/* ================= СЛАЙДЕР: автопрокрутка, точки, свайп ================= */
+const track = document.getElementById("track"), dotsBox = document.getElementById("dots");
+let idx = 0, timer;
+function renderSlides(){
+  track.innerHTML = UNIS.map(u => `
+    <article class="slide">
+      <h3>${u[lang]}</h3>
+      <p class="meta">${u.city[lang]}, ${t("founded")} ${u.y}</p>
+      <p>${u.d[lang]}</p>
+      <button class="btn" data-q="${u.q}">${t("show")}</button>
+    </article>`).join("");
+  dotsBox.innerHTML = UNIS.map((_,i) => `<button aria-label="${i+1}"></button>`).join("");
+  track.querySelectorAll("[data-q]").forEach(b => b.onclick = () => { document.getElementById("uni").value = b.dataset.q; search(); });
+  dotsBox.querySelectorAll("button").forEach((d,i) => d.onclick = () => { go(i); restart(); });
+  go(idx);
+}
+function go(i){
+  idx = (i + UNIS.length) % UNIS.length;
+  track.style.transform = `translateX(-${idx*100}%)`;
+  dotsBox.querySelectorAll("button").forEach((d,j) => d.classList.toggle("on", j === idx));
+}
+function restart(){ clearInterval(timer); timer = setInterval(() => go(idx+1), 5000); }
+const slider = document.getElementById("slider");
+slider.onmouseenter = () => clearInterval(timer);
+slider.onmouseleave = restart;
+let sx = 0;
+slider.addEventListener("touchstart", e => sx = e.touches[0].clientX, {passive:true});
+slider.addEventListener("touchend", e => { const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 50){ go(idx + (dx < 0 ? 1 : -1)); restart(); } });
+
+/* ================= МАСКА ТЕЛЕФОНА +7 (XXX) XXX-XX-XX ================= */
+const phone = document.getElementById("phone");
+phone.addEventListener("input", () => {
+  let d = phone.value.replace(/\D/g,"");
+  if (d.startsWith("8") || d.startsWith("7")) d = d.slice(1);
+  d = d.slice(0,10);
+  let out = "+7";
+  if (d.length) out += " (" + d.slice(0,3);
+  if (d.length >= 3) out += ")";
+  if (d.length > 3) out += " " + d.slice(3,6);
+  if (d.length > 6) out += "-" + d.slice(6,8);
+  if (d.length > 8) out += "-" + d.slice(8,10);
+  phone.value = out;
+});
+document.getElementById("contactForm").onsubmit = e => {
+  e.preventDefault();
+  const msg = document.getElementById("formMsg");
+  if (phone.value.replace(/\D/g,"").length !== 11){ msg.textContent = t("c_phone"); return; }
+  // TODO: подключите свой эндпоинт, напр. fetch("/feedback",{method:"POST",body:new FormData(e.target)})
+  msg.textContent = t("c_ok");
+  e.target.reset();
+};
+
+/* ================= СТАРТ ================= */
+applyLang();
+restart();
+addEventListener("load", () => setTimeout(() => document.getElementById("loader").classList.add("done"), 500));
+</script>
 </body>
 </html>
