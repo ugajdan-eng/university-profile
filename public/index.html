@@ -6,6 +6,7 @@
 <title>Атлас кампусов — фотографии университетов</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://locus-backend-16l4.onrender.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=Manrope:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 /* =========================================================
@@ -117,7 +118,7 @@ header.scrolled{background:var(--glass);backdrop-filter:blur(14px);-webkit-backd
 
 section{padding:90px 0}
 
-/* ================= КАК РАБОТАЕТ (реальная последовательность → номера уместны) ================= */
+/* ================= КАК РАБОТАЕТ ================= */
 .steps{display:grid;gap:18px;margin-top:2rem;counter-reset:s}
 .step{position:relative;padding:28px 28px 28px 90px;border-left:3px solid var(--azure)}
 .step::before{counter-increment:s;content:counter(s);position:absolute;left:24px;top:22px;font:800 2.4rem var(--f-display);color:var(--azure);opacity:.6}
@@ -131,14 +132,44 @@ section{padding:90px 0}
   mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 80' preserveAspectRatio='none'%3E%3Cpath d='M0 0h1440v30c-240 50-480 50-720 20S240 10 0 50z'/%3E%3C/svg%3E") center/100% 100%}
 .status{color:var(--muted);margin:1rem 0 2rem;min-height:1.6em}
 .gallery-sec .wrap{width:min(1440px,100% - 32px)}
+
+/* описание вуза из data.description */
+.desc{display:none;max-width:76ch;margin:.4rem 0 1.6rem;padding:20px 24px;border-radius:var(--r-lg);
+  background:var(--glass);border:1px solid var(--glass-brd);border-left:4px solid var(--azure);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.desc.show{display:block;animation:pop .5s both}
+.desc h3{font-size:1.05rem;margin-bottom:.4rem;color:var(--azure)}
+.desc p{color:var(--text)}
+
+/* предупреждение, когда бэкенд вернул is_verified:false */
+.notice{display:none;align-items:center;gap:10px;max-width:76ch;margin:0 0 1.6rem;padding:12px 18px;
+  border-radius:var(--r-sm);border:1px solid var(--gold);background:rgba(242,183,5,.12);color:var(--text);font-size:.92rem}
+.notice.show{display:flex}
+.notice b{color:var(--gold)}
+
 .gallery{display:grid;grid-template-columns:1fr;gap:20px}
-.card{border-radius:var(--r-sm);overflow:hidden;background:var(--glass);border:1px solid var(--glass-brd);
+.card{position:relative;border-radius:var(--r-sm);overflow:hidden;background:var(--glass);border:1px solid var(--glass-brd);
   cursor:zoom-in;transition:transform .35s,box-shadow .35s;animation:pop .5s both}
 .card:hover{transform:translateY(-6px) rotate(-.6deg);box-shadow:var(--shadow)}
 .card img{width:100%;aspect-ratio:4/3;object-fit:cover;transition:transform .5s}
 .card:hover img{transform:scale(1.04)}
-.card .source{padding:10px 14px;font-size:.8rem;color:var(--muted);word-break:break-word}
+.card .source{padding:10px 14px;font-size:.8rem;color:var(--muted);word-break:break-word;
+  display:flex;justify-content:space-between;align-items:center;gap:10px}
 .card .source a{color:var(--azure)}
+.shot{position:relative}
+
+/* карточка с непроверенной категорией */
+.card.unverified{border-color:var(--gold);box-shadow:inset 0 0 0 2px var(--gold)}
+.card.unverified:hover{box-shadow:inset 0 0 0 2px var(--gold),var(--shadow)}
+.badge{position:absolute;top:10px;left:10px;display:flex;align-items:center;gap:6px;padding:6px 11px;border-radius:999px;
+  background:var(--gold);color:var(--ink);font:700 .74rem var(--f-body);box-shadow:0 6px 16px -6px rgba(0,0,0,.6)}
+.badge svg{width:14px;height:14px;fill:currentColor;flex:none}
+.tag{position:absolute;bottom:10px;right:10px;padding:5px 11px;border-radius:999px;
+  background:rgba(10,37,64,.75);color:var(--snow);font:600 .72rem var(--f-body);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.conf{white-space:nowrap;font-weight:700;color:var(--azure)}
+.card.unverified .conf{color:var(--gold)}
+
 @keyframes pop{from{opacity:0;transform:translateY(20px)}}
 .skeleton{aspect-ratio:4/3;border-radius:var(--r-sm);
   background:linear-gradient(90deg,var(--glass) 25%,var(--glass-brd) 50%,var(--glass) 75%);background-size:200% 100%;animation:shimmer 1.2s infinite}
@@ -239,7 +270,6 @@ footer{padding:40px 0;border-top:1px solid var(--glass-brd)}
   <div class="wrap hero-inner">
     <h1 data-i18n="hero_title">Атлас кампусов</h1>
     <p data-i18n="hero_sub">Найдите фотографии любого университета. Под каждым снимком указан источник.</p>
-    <!-- поиск: логика исходного кода сохранена -->
     <form class="search" id="searchForm" role="search">
       <input id="uni" autocomplete="off" data-i18n-ph="placeholder" placeholder="Название университета" aria-label="Название университета">
       <button class="btn" id="searchBtn" type="submit" data-i18n="search">Найти</button>
@@ -273,7 +303,17 @@ footer{padding:40px 0;border-top:1px solid var(--glass-brd)}
 <section class="gallery-sec" id="gallery">
   <div class="wrap">
     <h2 class="reveal" data-i18n="gal_title">Результаты</h2>
-    <p class="status" id="status" data-i18n="gal_empty">Введите название вуза, чтобы увидеть галерею.</p>
+
+    <!-- описание вуза: data.description -->
+    <div class="desc" id="desc">
+      <h3 id="descTitle"></h3>
+      <p id="descText"></p>
+    </div>
+
+    <!-- сводка по непроверенным снимкам -->
+    <div class="notice" id="notice" role="status"></div>
+
+    <p class="status" id="status">Введите название вуза, чтобы увидеть галерею.</p>
     <div class="gallery" id="result"></div>
   </div>
 </section>
@@ -308,13 +348,11 @@ footer{padding:40px 0;border-top:1px solid var(--glass-brd)}
 <footer>
   <div class="wrap foot">
     <span data-i18n="foot">Атлас кампусов. Изображения принадлежат их правообладателям.</span>
-    <!-- соцсети: впишите свои ссылки в href -->
     <div class="socials">
        <a href="https://t.me/D_yu14" aria-label="Telegram"><svg viewBox="0 0 24 24"><path d="M21.9 4.3 18.7 19c-.2 1-.9 1.3-1.8.8l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.3-5 9.1-8.2c.4-.4-.1-.6-.6-.2L6.2 12.7l-4.8-1.5c-1-.3-1-1 .2-1.5L20.5 2.8c.9-.3 1.6.2 1.4 1.5z"/></svg></a>
        <a href="https://t.me/BreeZy_11" aria-label="Telegram"><svg viewBox="0 0 24 24"><path d="M21.9 4.3 18.7 19c-.2 1-.9 1.3-1.8.8l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.3-5 9.1-8.2c.4-.4-.1-.6-.6-.2L6.2 12.7l-4.8-1.5c-1-.3-1-1 .2-1.5L20.5 2.8c.9-.3 1.6.2 1.4 1.5z"/></svg></a>
        <a href="https://www.instagram.com/dan_yu14_/" aria-label="Instagram"><svg viewBox="0 0 24 24"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 8.2a3.2 3.2 0 1 1 0-6.4 3.2 3.2 0 0 1 0 6.4zM17.3 5.5a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4zM12 2c-2.7 0-3 0-4.1.1C4.2 2.3 2.3 4.2 2.1 7.9 2 9 2 9.3 2 12s0 3 .1 4.1c.2 3.7 2.1 5.6 5.8 5.8 1.1.1 1.4.1 4.1.1s3 0 4.1-.1c3.7-.2 5.6-2.1 5.8-5.8.1-1.1.1-1.4.1-4.1s0-3-.1-4.1c-.2-3.7-2.1-5.6-5.8-5.8C15 2 14.7 2 12 2z"/></svg></a>
        <a href="https://www.instagram.com/_kadyrgazhy_a/" aria-label="Instagram"><svg viewBox="0 0 24 24"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 8.2a3.2 3.2 0 1 1 0-6.4 3.2 3.2 0 0 1 0 6.4zM17.3 5.5a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4zM12 2c-2.7 0-3 0-4.1.1C4.2 2.3 2.3 4.2 2.1 7.9 2 9 2 9.3 2 12s0 3 .1 4.1c.2 3.7 2.1 5.6 5.8 5.8 1.1.1 1.4.1 4.1.1s3 0 4.1-.1c3.7-.2 5.6-2.1 5.8-5.8.1-1.1.1-1.4.1-4.1s0-3-.1-4.1c-.2-3.7-2.1-5.6-5.8-5.8C15 2 14.7 2 12 2z"/></svg></a>
-   
     </div>
   </div>
 </footer>
@@ -323,8 +361,14 @@ footer{padding:40px 0;border-top:1px solid var(--glass-brd)}
 
 <script>
 /* =========================================================
-   ДАННЫЕ: вузы для слайдера (реальные год/город основания)
-   q — запрос, уходящий на бэкенд
+   БЭКЕНД
+   ========================================================= */
+const API_BASE = "https://locus-backend-16l4.onrender.com";
+const COLD_START_HINT_MS = 8000;    // через сколько сказать «сервер просыпается»
+const REQUEST_TIMEOUT_MS = 90000;   // холодный старт Render free доходит до минуты
+
+/* =========================================================
+   ДАННЫЕ: вузы для слайдера
    ========================================================= */
 const UNIS = [
   {q:"Nazarbayev University", ru:"Назарбаев Университет", kk:"Назарбаев Университеті", city:{ru:"Астана",kk:"Астана"}, y:2010,
@@ -347,6 +391,13 @@ const I18N = {
     how_title:"Три шага до галереи",s1_t:"Введите название",s1_d:"На русском, казахском или английском.",s2_t:"Сервер собирает снимки",s2_d:"Поиск идёт по открытым источникам.",
     s3_t:"Проверьте источник",s3_d:"Под каждым фото указано, откуда оно взято.",gal_title:"Результаты",gal_empty:"Введите название вуза, чтобы увидеть галерею.",
     searching:"Ищем снимки: ",found:"Найдено снимков: ",none:"Снимков не найдено. Попробуйте полное или английское название.",err:"Сервер не ответил. Проверьте подключение и повторите поиск.",
+    waking:"Сервер просыпается после простоя. Первый запрос занимает до минуты.",
+    timeout:"Сервер не ответил за 90 секунд. Повторите поиск — второй запрос обычно быстрый.",
+    about:"О вузе",unsure:"ИИ не уверен",
+    notice_one:"Одну карточку модель разметила приблизительно — категория может не совпасть.",
+    notice_many:"Карточек с приблизительной категорией: ",
+    sec:"с",src:"источник: ",conf:"точность",
+    cat_campus:"Кампус",cat_labs:"Лаборатории",cat_sport:"Спорт",cat_dormitory:"Общежитие",cat_city:"Город",cat_unknown:"Без категории",
     unis_title:"Вузы Казахстана",unis_sub:"Выберите университет, чтобы сразу открыть его фотографии.",founded:"основан в",show:"Показать фото",
     c_title:"Предложить вуз или сообщить об ошибке",c_name:"Имя",c_msg:"Сообщение",c_send:"Отправить в Telegram",c_ok:"Чат открыт, текст уже в поле ввода. Если поле пустое, вставьте текст: он скопирован.",c_phone:"Введите номер полностью: +7 (XXX) XXX-XX-XX",
     foot:"Атлас кампусов. Изображения принадлежат их правообладателям."},
@@ -356,12 +407,20 @@ const I18N = {
     how_title:"Галереяға дейін үш қадам",s1_t:"Атауын енгізіңіз",s1_d:"Орысша, қазақша немесе ағылшынша.",s2_t:"Сервер суреттерді жинайды",s2_d:"Іздеу ашық дереккөздер бойынша жүреді.",
     s3_t:"Дереккөзді тексеріңіз",s3_d:"Әр суреттің астында қайдан алынғаны көрсетілген.",gal_title:"Нәтижелер",gal_empty:"Галереяны көру үшін ЖОО атауын енгізіңіз.",
     searching:"Суреттерді іздеудеміз: ",found:"Табылған суреттер: ",none:"Суреттер табылмады. Толық немесе ағылшынша атауын қолданып көріңіз.",err:"Сервер жауап бермеді. Байланысты тексеріп, қайта іздеңіз.",
+    waking:"Сервер бос тұрғаннан кейін оянып жатыр. Бірінші сұрау бір минутқа дейін созылады.",
+    timeout:"Сервер 90 секундта жауап бермеді. Қайта іздеңіз — екінші сұрау әдетте жылдам.",
+    about:"ЖОО туралы",unsure:"ЖИ сенімді емес",
+    notice_one:"Бір картаны модель шамамен белгіледі — санаты сәйкес келмеуі мүмкін.",
+    notice_many:"Санаты шамамен анықталған карталар: ",
+    sec:"с",src:"дереккөз: ",conf:"дәлдік",
+    cat_campus:"Кампус",cat_labs:"Зертханалар",cat_sport:"Спорт",cat_dormitory:"Жатақхана",cat_city:"Қала",cat_unknown:"Санатсыз",
     unis_title:"Қазақстан ЖОО-лары",unis_sub:"Суреттерін бірден ашу үшін университетті таңдаңыз.",founded:"құрылған жылы",show:"Суреттерді көрсету",
     c_title:"ЖОО ұсыну немесе қате туралы хабарлау",c_name:"Аты",c_msg:"Хабарлама",c_send:"Telegram-ға жіберу",c_ok:"Чат ашылды, мәтін енгізу жолында. Жол бос болса, мәтінді қойыңыз: ол көшірілген.",c_phone:"Нөмірді толық енгізіңіз: +7 (XXX) XXX-XX-XX",
     foot:"Кампустар атласы. Суреттер олардың құқық иелеріне тиесілі."}
 };
 let lang = load("atlas-lang","ru");
 const t = k => I18N[lang][k] ?? k;
+const catLabel = c => t("cat_" + (c || "unknown"));
 
 function applyLang(){
   document.documentElement.lang = lang === "kk" ? "kk" : "ru";
@@ -369,6 +428,9 @@ function applyLang(){
   document.querySelectorAll("[data-i18n-ph]").forEach(el => el.placeholder = t(el.dataset.i18nPh));
   document.querySelectorAll("[data-lang]").forEach(b => b.classList.toggle("on", b.dataset.lang === lang));
   renderSlides();
+  // перерисовываем последний ответ на новом языке; если поиска не было — пустой экран
+  if (lastData) renderResults(lastData);
+  else statusEl.textContent = t("gal_empty");
 }
 document.querySelectorAll("[data-lang]").forEach(b => b.onclick = () => { lang = b.dataset.lang; save("atlas-lang",lang); applyLang(); });
 
@@ -414,11 +476,11 @@ toTop.onclick = () => scrollTo({top:0,behavior:"smooth"});
 const revealIO = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting){ e.target.classList.add("in"); revealIO.unobserve(e.target); } }),{threshold:.15});
 document.querySelectorAll(".reveal").forEach(el => revealIO.observe(el));
 
-/* ================= СЧЁТЧИКИ: запуск только в зоне видимости ================= */
+/* ================= СЧЁТЧИКИ ================= */
 let stats = load("atlas-stats",{searches:0,images:0,sources:[]});
 const statValue = k => ({searches:stats.searches,images:stats.images,sources:stats.sources.length,unis:UNIS.length}[k]);
 function animateCount(el){
-  const to = statValue(el.dataset.key), from = +el.textContent || 0, t0 = performance.now(), dur = 1400;
+  const to = statValue(el.dataset.key), from = +el.textContent.replace(/\s/g,"") || 0, t0 = performance.now(), dur = 1400;
   (function tick(now){
     const p = Math.min((now - t0)/dur,1), ease = 1 - Math.pow(1-p,3);
     el.textContent = Math.round(from + (to-from)*ease).toLocaleString("ru-RU");
@@ -430,65 +492,180 @@ new IntersectionObserver(es => es.forEach(e => {
   if (e.isIntersecting && !statsVisible){ statsVisible = true; document.querySelectorAll(".count").forEach(animateCount); }
 }),{threshold:.5}).observe(document.querySelector(".stats"));
 
-/* ================= ПОИСК (исходная логика: POST /search?university_name=) ================= */
-const statusEl = document.getElementById("status"), result = document.getElementById("result"), btn = document.getElementById("searchBtn");
+function hostOf(u){ try{ return new URL(u).hostname; }catch{ return u || ""; } }
+
+function updateStats(items){
+  stats.searches++;
+  stats.images += items.length;
+  stats.sources = [...new Set([...stats.sources, ...items.map(i => hostOf(i.source_url || i.url))])].filter(Boolean).slice(-500);
+  save("atlas-stats",stats);
+  if (statsVisible) document.querySelectorAll(".count").forEach(animateCount);
+}
+
+/* =========================================================
+   ПОИСК: GET /api/search?q=
+   Ответ: {university, description, processing_time_sec, source, warnings, items:[…]}
+   ========================================================= */
+const statusEl = document.getElementById("status");
+const result   = document.getElementById("result");
+const btn      = document.getElementById("searchBtn");
+const descBox  = document.getElementById("desc");
+const descTitle= document.getElementById("descTitle");
+const descText = document.getElementById("descText");
+const noticeEl = document.getElementById("notice");
+
+let lastData = null;   // последний ответ бэкенда — для перерисовки при смене языка
+let inflight = null;   // текущий запрос, чтобы отменить его при повторном поиске
+
 document.getElementById("searchForm").onsubmit = e => { e.preventDefault(); search(); };
 
 async function search(){
   const uni = document.getElementById("uni").value.trim();
   if (!uni) return;
+
+  if (inflight) inflight.abort();          // новый поиск отменяет предыдущий
+  const ctrl = new AbortController();
+  inflight = ctrl;
+
   document.getElementById("gallery").scrollIntoView({behavior:"smooth"});
   btn.disabled = true;
   statusEl.textContent = t("searching") + uni;
+  descBox.classList.remove("show");
+  noticeEl.classList.remove("show");
   result.innerHTML = '<div class="skeleton"></div>'.repeat(6);
+
+  const hint = setTimeout(() => { statusEl.textContent = t("waking"); }, COLD_START_HINT_MS);
+  const kill = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
+
   try{
-    const res = await fetch("/search?university_name=" + encodeURIComponent(uni), {method:"POST"}); // encode: исправлены пробелы/кириллица
-    if (!res.ok) throw new Error(res.status);
+    const res = await fetch(API_BASE + "/api/search?q=" + encodeURIComponent(uni), {signal: ctrl.signal});
+    if (!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
-    renderGallery(data.images || []);
+    renderResults(data);
+    updateStats(Array.isArray(data.items) ? data.items : []);
   }catch(err){
+    if (err.name === "AbortError" && ctrl !== inflight) return;   // отменили ради нового поиска
     console.error(err);
+    lastData = null;
     result.innerHTML = "";
-    statusEl.textContent = t("err");
-  }finally{ btn.disabled = false; }
+    descBox.classList.remove("show");
+    noticeEl.classList.remove("show");
+    statusEl.textContent = err.name === "AbortError" ? t("timeout") : t("err");
+  }finally{
+    clearTimeout(hint); clearTimeout(kill);
+    if (ctrl === inflight){ inflight = null; btn.disabled = false; }
+  }
 }
 
-/* рендер через DOM вместо innerHTML — защита от XSS в img.source */
-function renderGallery(images){
-  result.innerHTML = "";
-  if (!images.length){ statusEl.textContent = t("none"); return; }
-  const MAX = 6;                                   // ровно 6 слотов
-  const queue = images.slice(MAX);                 // запас на замену битых
-  statusEl.textContent = t("found") + Math.min(images.length, MAX);
-  images.slice(0, MAX).forEach(addCard);
+function renderResults(data){
+  lastData = data;
+  const items = (Array.isArray(data.items) ? data.items : []).filter(i => i && i.url);
+  showDescription(data.university, data.description);
+  renderGallery(items, data);
+}
 
-  function addCard(img,i){
-    const card = document.createElement("figure"), pic = new Image(), cap = document.createElement("figcaption");
-    card.className = "card"; card.style.animationDelay = i*60 + "ms";
-    pic.src = img.url; pic.loading = "lazy"; pic.alt = img.source || "";
-    pic.onerror = () => { const next = queue.shift(); next ? addCard(next,0) : null; card.remove(); }; // битую заменяем из запаса
+/* описание вуза над результатами */
+function showDescription(university, text){
+  if (!text || !String(text).trim()){ descBox.classList.remove("show"); return; }
+  descTitle.textContent = university ? `${t("about")}: ${university}` : t("about");
+  descText.textContent = String(text).trim();
+  descBox.classList.add("show");
+}
+
+function renderGallery(items, meta){
+  result.innerHTML = "";
+  if (!items.length){ statusEl.textContent = t("none"); noticeEl.classList.remove("show"); return; }
+
+  const MAX = 9;
+  const shown = items.slice(0, MAX);
+  const queue = items.slice(MAX);          // запас на замену битых ссылок
+
+  const parts = [t("found") + shown.length];
+  if (meta && meta.processing_time_sec != null) parts.push(meta.processing_time_sec + " " + t("sec"));
+  if (meta && meta.source && meta.source !== "none") parts.push(t("src") + meta.source);
+  statusEl.textContent = parts.join(" • ");
+
+  const unsure = shown.filter(i => !i.is_verified).length;
+  if (unsure > 0){
+    noticeEl.textContent = "";
+    const icon = document.createElement("b");
+    icon.textContent = "⚠";
+    const msg = document.createElement("span");
+    msg.textContent = unsure === 1 ? t("notice_one") : t("notice_many") + unsure;
+    noticeEl.append(icon, msg);
+    noticeEl.classList.add("show");
+  } else noticeEl.classList.remove("show");
+
+  shown.forEach(addCard);
+
+  /* рендер через DOM вместо innerHTML — защита от XSS в полях бэкенда */
+  function addCard(item, i){
+    const card = document.createElement("figure");
+    card.className = "card" + (item.is_verified ? "" : " unverified");
+    card.style.animationDelay = i*60 + "ms";
+
+    const shot = document.createElement("div");
+    shot.className = "shot";
+
+    const pic = new Image();
+    pic.src = item.url;
+    pic.loading = "lazy";
+    pic.decoding = "async";
+    pic.referrerPolicy = "no-referrer";           // часть хостов отдаёт 403 по Referer
+    pic.alt = catLabel(item.category);
+    pic.onerror = () => { const next = queue.shift(); if (next) addCard(next, 0); card.remove(); };
+    shot.appendChild(pic);
+
+    // предупреждение, когда бэкенд не смог классифицировать снимок
+    if (!item.is_verified){
+      const badge = document.createElement("span");
+      badge.className = "badge";
+      badge.title = t("unsure");
+      const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
+      svg.setAttribute("viewBox","0 0 24 24");
+      svg.setAttribute("aria-hidden","true");
+      const path = document.createElementNS("http://www.w3.org/2000/svg","path");
+      path.setAttribute("d","M12 2 1 21h22L12 2zm1 15h-2v-2h2v2zm0-4h-2V8h2v5z");
+      svg.appendChild(path);
+      const label = document.createElement("span");
+      label.textContent = t("unsure");
+      badge.append(svg, label);
+      shot.appendChild(badge);
+    }
+
+    const tag = document.createElement("span");
+    tag.className = "tag";
+    tag.textContent = catLabel(item.category);
+    shot.appendChild(tag);
+
+    const cap = document.createElement("figcaption");
     cap.className = "source";
-    if (/^https?:\/\//.test(img.source || "")){
+    const src = item.source_url || item.url;
+    if (/^https?:\/\//.test(src)){
       const a = document.createElement("a");
-      a.href = img.source; a.target = "_blank"; a.rel = "noopener";
-      try{ a.textContent = new URL(img.source).hostname; }catch{ a.textContent = img.source; }
+      a.href = src; a.target = "_blank"; a.rel = "noopener noreferrer";
+      a.textContent = hostOf(src);
       a.onclick = e => e.stopPropagation();
       cap.appendChild(a);
-    } else cap.textContent = img.source || "";
-    card.append(pic,cap);
-    card.onclick = () => openLightbox(img.url);
+    } else cap.appendChild(document.createTextNode(src || ""));
+
+    if (typeof item.confidence_score === "number"){
+      const conf = document.createElement("span");
+      conf.className = "conf";
+      conf.textContent = Math.round(item.confidence_score * 100) + "%";
+      conf.title = t("conf");
+      cap.appendChild(conf);
+    }
+
+    card.append(shot, cap);
+    card.onclick = () => openLightbox(item.url, catLabel(item.category));
     result.appendChild(card);
   }
-  // обновляем статистику
-  stats.searches++; stats.images += images.length;
-  stats.sources = [...new Set([...stats.sources, ...images.map(i => { try{ return new URL(i.source).hostname; }catch{ return i.source; } })])].slice(-500);
-  save("atlas-stats",stats);
-  if (statsVisible) document.querySelectorAll(".count").forEach(animateCount);
 }
 
 /* лайтбокс */
 const lb = document.getElementById("lightbox");
-function openLightbox(src){ lb.querySelector("img").src = src; lb.classList.add("open"); }
+function openLightbox(src, alt){ const img = lb.querySelector("img"); img.src = src; img.alt = alt || ""; lb.classList.add("open"); }
 lb.onclick = () => lb.classList.remove("open");
 addEventListener("keydown", e => { if (e.key === "Escape") lb.classList.remove("open"); });
 
@@ -535,25 +712,25 @@ phone.addEventListener("input", () => {
   if (d.length > 8) out += "-" + d.slice(8,10);
   phone.value = out;
 });
-document.getElementById("contactForm").onsubmit = e => {
-  e.preventDefault();
-  const msg = document.getElementById("formMsg");
-  if (phone.value.replace(/\D/g,"").length !== 11){ msg.textContent = t("c_phone"); return; }
-  // текст по шаблону
-  const text = `Здравствуйте!
-Меня зовут ${document.getElementById("cName").value.trim()} и я хотел оставить сообщение:
-${document.getElementById("cMsg").value.trim()}
-${phone.value}`;
-  copyText(text);                                                        // запасной вариант, если клиент не подставит текст
-  window.open(`${TG_CHAT}?text=${encodeURIComponent(text)}`, "_blank", "noopener"); // текст сразу в поле ввода
-  msg.textContent = t("c_ok");
-  e.target.reset();
-};
 
 /* ссылка на личный чат Telegram */
 const TG_CHAT = "https://t.me/D_yu14";
 
-/* копирование в буфер: execCommand работает синхронно и не блокируется, Clipboard API — запасной вариант */
+document.getElementById("contactForm").onsubmit = e => {
+  e.preventDefault();
+  const msg = document.getElementById("formMsg");
+  if (phone.value.replace(/\D/g,"").length !== 11){ msg.textContent = t("c_phone"); return; }
+  const text = `Здравствуйте!
+Меня зовут ${document.getElementById("cName").value.trim()} и я хотел оставить сообщение:
+${document.getElementById("cMsg").value.trim()}
+${phone.value}`;
+  copyText(text);
+  window.open(`${TG_CHAT}?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+  msg.textContent = t("c_ok");
+  e.target.reset();
+};
+
+/* копирование в буфер */
 function copyText(txt){
   const ta = document.createElement("textarea");
   ta.value = txt; ta.style.cssText = "position:fixed;opacity:0";
@@ -567,7 +744,11 @@ function copyText(txt){
 /* ================= СТАРТ ================= */
 applyLang();
 restart();
-addEventListener("load", () => setTimeout(() => document.getElementById("loader").classList.add("done"), 500));
+/* будим Render заранее: пока человек читаетhero, сервер уже поднимается */
+addEventListener("load", () => {
+  setTimeout(() => document.getElementById("loader").classList.add("done"), 500);
+  fetch(API_BASE + "/health").catch(() => {});
+});
 </script>
 </body>
 </html>
